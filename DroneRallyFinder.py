@@ -2,8 +2,6 @@ import affine
 import gdal
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
 import rasterio
 from scipy.ndimage.measurements import label
 from scipy import ndimage
@@ -11,6 +9,10 @@ from math import ceil, hypot
 from gdal import osr
 import geopy.distance
 import cv2
+from libs.tspAlgorithms import *
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+
 
 class RallyPoint:
     def __init__(self):
@@ -24,14 +26,17 @@ class RallyPoint:
         self.size = 0
         self.distance = 0
 
+    def __eq__(self, other):
+        return self.utm_x == other.utm_x and self.utm_y == other.utm_y
+
     # override to_string functions to get debug print that is actually useful
     def __str__(self):
-        return f'[px: {self.px}, py: {self.py}, utm_x: {self.utm_x}, utm_y: {self.utm_y}, lat: {self.lat}, lon: {self.lon}, size: {self.size}, distance: {self.distance}]'
+        return f'[px: {self.px}, py: {self.py}, utm_x: {self.utm_x}, utm_y: {self.utm_y}, lat: {self.lat}, lon: {self.lon}, size: {self.size}, distance: {self.distance}, cost: {self.cost}]'
         # return f'[size: {self.size}, distance: {self.distance}]'
 
     def __repr__(self):
        return (f'{self.__class__.__name__}('
-               f'[px: {self.px}, py: {self.py}, utm_x: {self.utm_x!r}, utm_y: {self.utm_y!r}, lat: {self.lat!r}, lon: {self.lon!r}, size: {self.size!r}, distance: {self.distance!r}]')
+               f'[px: {self.px}, py: {self.py}, utm_x: {self.utm_x!r}, utm_y: {self.utm_y!r}, lat: {self.lat!r}, lon: {self.lon!r}, size: {self.size!r}, distance: {self.distance!r}, cost: {self.cost!r}]')
                # f'[size: {self.size!r}, distance: {self.distance!r}]')
 
 
@@ -57,6 +62,10 @@ class DroneRallypointFinder:
         self.slope = None
         self.flat_areas = None
         self.labeled = None
+
+        # Weights for sorting
+        self.DISTANCE_WEIGHT = 0.8
+        self.SIZE_WEIGHT = 0.4
 
         # drone properties
         self.curr_pos = LatLon()
@@ -154,16 +163,16 @@ class DroneRallypointFinder:
         return rally_points
 
     def sortRallyPoints(self, rally_points):
-        # sort based on distance from current pos, and size. Shortest distance and biggest size first
+        # get start point by getting closest node to the drones current pos
         for point in rally_points:
-            # get distance and add to list
             dist = self.dist2pointUTM(point.utm_x, point.utm_y)
             point.distance = dist
+        start_point = sorted(rally_points, key=lambda x: x.distance)[0]
 
-        # sort based on distance and size TODO, change to cost functions.
-        # TODO Calculate cost for each point based on better weight of size versus distance, then sort based on cost
-        rally_points_sorted = sorted(rally_points, key=lambda x: (x.distance, x.size))
-        return rally_points_sorted
+        # TSP nearest neighbour
+        path = optimized_travelling_salesman(rally_points, start_point)
+
+        return path
 
     def dist2point(self, lat, lon):
         # calculates distance from drone curr_pos to rally_point. All input should be lat/lon
@@ -319,7 +328,6 @@ class DroneRallypointFinder:
 
         # show results
         self.showSortedRallyPoints(rally_points_sorted)
-
 
 
         # Calculate distance drone can go with current emergency, before having to land
