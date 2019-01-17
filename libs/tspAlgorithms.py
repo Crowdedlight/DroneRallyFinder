@@ -22,7 +22,7 @@ def optimized_travelling_salesman(points, start=None):
     path = [start]
     must_visit.remove(start)
     while must_visit:
-        nearest = min(must_visit, key=lambda x: dist_squared(path[-1], x))
+        nearest = min(must_visit, key=lambda x: dist_squared(path[-1], x) - 0.1 * x.size)
         path.append(nearest)
         must_visit.remove(nearest)
     return path

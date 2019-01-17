@@ -290,8 +290,7 @@ class DroneRallypointFinder:
             # place text
             cv2.putText(map_points, text, textPos, font, font_scale, (0, 0, 0), font_thick)
 
-
-        # self.showImg(map_points)
+        # self.showImgCompared(map_points, map_points)
         # self.showImgCompared(map_points, self.flat_areas)
         self.showImgCompared(map_points, self.labeled)
 
@@ -329,7 +328,8 @@ class DroneRallypointFinder:
         # show results
         self.showSortedRallyPoints(rally_points_sorted)
 
-
+        # TODO list. Some is done, others couldn't be done atm due to limitations. 
+        # TODO Keeping list to save the ideas for improvements
         # Calculate distance drone can go with current emergency, before having to land
 
         # Obtain min and max coordinates in UTM to make a area the drone can search in
@@ -347,8 +347,6 @@ class DroneRallypointFinder:
         # rank the list over found areas on suitability, like distance from drone, and how big the area is flat in
 
         # output list with coordinates, possible images, over best areas
-
-
 
 
 if __name__ == '__main__':
